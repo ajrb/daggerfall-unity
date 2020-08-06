@@ -31,6 +31,20 @@ namespace DaggerfallWorkshop
         const byte grass = 2;
         const byte stone = 3;
 
+        const byte road = 46;
+        const byte road_grass = 55;
+        const byte road_dirt = 47;
+
+        const byte N  = 0b1000_0000;
+        const byte NE = 0b0100_0000;
+        const byte E  = 0b0010_0000;
+        const byte SE = 0b0001_0000;
+        const byte S  = 0b0000_1000;
+        const byte SW = 0b0000_0100;
+        const byte W  = 0b0000_0010;
+        const byte NW = 0b0000_0001;
+
+
         static readonly int tileDataDim = MapsFile.WorldMapTileDim + 1;
 
         static readonly int assignTilesDim = MapsFile.WorldMapTileDim;
@@ -70,6 +84,8 @@ namespace DaggerfallWorkshop
                 tdDim = tileDataDim,
                 tDim = assignTilesDim,
                 march = march,
+                mapPixelX = mapData.mapPixelX,
+                mapPixelY = mapData.mapPixelY,
                 locationRect = mapData.locationRect,
             };
             JobHandle assignTilesHandle = assignTilesJob.Schedule(assignTilesDim * assignTilesDim, 64, tileDataHandle);
@@ -98,6 +114,8 @@ namespace DaggerfallWorkshop
             public int tdDim;
             public int tDim;
             public bool march;
+            public int mapPixelX;
+            public int mapPixelY;
             public Rect locationRect;
 
             public void Execute(int index)
@@ -107,6 +125,14 @@ namespace DaggerfallWorkshop
 
                 // Do nothing if in location rect as texture already set, to 0xFF if zero
                 if (tilemapData[index] != 0)
+                    return;
+
+                //byte roadData = (byte)(1 << (mapPixelX % 8));
+                //byte roadData = (byte) (mapPixelX & 0xF);
+                //byte roadData = NE|SE; // NE|SW; //S|W; // N|E; //0b0000_0000;
+                byte roadData = GetData();
+
+                if (PaintRoad(x, y, index, roadData))
                     return;
 
                 // Assign tile texture
@@ -129,6 +155,124 @@ namespace DaggerfallWorkshop
                 {
                     tilemapData[index] = tileData[JobA.Idx(x, y, tdDim)];
                 }
+            }
+
+            private byte GetData()
+            {
+                switch ((mapPixelX + (mapPixelY * 1500)) % 8)
+                {
+                    case 0:
+                        return NE|N;
+                    case 1:
+                        return NE|NE;
+                    case 2:
+                        return NE|E;
+                    case 3:
+                        return NE|SE;
+                    case 4:
+                        return NE|S;
+                    case 5:
+                        return NE|SW;
+                    case 6:
+                        return NE|W;
+                    case 7:
+                        return NE|NW;
+                    default:
+                        return N;
+                }
+            }
+
+            private bool PaintRoad(int x, int y, int index, byte roadData)
+            {
+                bool hasRoad = false;
+                if ((x == 65 && y == 65) || (x == 62 && y == 65) || (x == 65 && y == 62) || (x == 62 && y == 62))
+                {
+                    tilemapData[index] = water;
+                    hasRoad = true;
+                }
+                // N-S
+                if (((roadData & N) > 0 && (x == 63 || x == 64) && y > 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y < 64))
+                {
+                    tilemapData[index] = road;
+                    hasRoad = true;
+                }
+                if (((roadData & N) > 0 && (x == 63 || x == 64) && y == 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y == 64))
+                {
+                    PaintHalfRoad(x, y, index, x == y, x == 64);
+                    hasRoad = true;
+                }
+                // E-W
+                if (((roadData & E) > 0 && (y == 63 || y == 64) && x > 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x < 64))
+                {
+                    tilemapData[index] = road;
+                    hasRoad = true;
+                }
+                if (((roadData & E) > 0 && (y == 63 || y == 64) && x == 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x == 64))
+                {
+                    PaintHalfRoad(x, y, index, x == y, x == 64);
+                    hasRoad = true;
+                }
+                // NE-SW
+                if (((roadData & NE) > 0 && x == y && x > 63) || ((roadData & SW) > 0 && x == y && x < 64))
+                {
+                    tilemapData[index] = road;
+                    hasRoad = true;
+                }
+                if (((roadData & NE) > 0 && x == y && x == 63) || ((roadData & SW) > 0 && x == y && x == 64))
+                {
+                    PaintHalfRoad(x, y, index, true, x == 64);
+                    hasRoad = true;
+                }
+                if (((roadData & NE) > 0 && ((x == y + 1 && x > 63) || (x + 1 == y && y > 63))) || ((roadData & SW) > 0 && ((x == y + 1 && x <= 64) || (x + 1 == y && y <= 64))))
+                {
+                    PaintHalfRoad(x, y, index, false, (x == y + 1));
+                    hasRoad = true;
+                }
+                // NW-SE
+                int _x = 127 - x;
+                if (((roadData & NW) > 0 && _x == y && x < 64) || ((roadData & SE) > 0 && _x == y && x > 63))
+                {
+                    tilemapData[index] = road;
+                    hasRoad = true;
+                }
+                if (((roadData & NW) > 0 && _x == y && x == 64) || ((roadData & SE) > 0 && _x == y && x == 63))
+                {
+                    PaintHalfRoad(x, y, index, false, x == 64);
+                    hasRoad = true;
+                }
+                if (((roadData & NW) > 0 && ((_x == y + 1 && x < 64) || (_x + 1 == y && y > 63))) || ((roadData & SE) > 0 && ((_x == y + 1 && x >= 63) || (_x + 1 == y && y <= 64))))
+                {
+                    PaintHalfRoad(x, y, index, true, (_x != y + 1));
+                    hasRoad = true;
+                }
+
+                return hasRoad;
+            }
+
+            private void PaintHalfRoad(int x, int y, int index, bool rotate, bool flip)
+            {
+                int tileMap = tilemapData[index] & 0x3F;
+                if (tileMap == road || tileMap == road_grass || tileMap == road_dirt)
+                    return;
+
+                byte tile = tileData[JobA.Idx(x, y, tdDim)];
+                if (tile == grass)
+                    tilemapData[index] = road_grass;
+                else if (tile == dirt)
+                    tilemapData[index] = road_dirt;
+                else if (tile == stone)
+                    tilemapData[index] = stone;
+
+                if (rotate)
+                    tilemapData[index] += 64;
+                if (flip)
+                    tilemapData[index] += 128;
+            }
+
+            private bool IsTileNotSetOrValid(byte tile)
+            {
+                int record = tile & 0x4F;
+                return tile == 0 || record == road || record == road_grass || record == road_dirt;
             }
         }
 
@@ -185,11 +329,34 @@ namespace DaggerfallWorkshop
                 return Mathf.Clamp(finalValue, -1, 1);
             }
 
+            private bool HasRoad(int x, int y)
+            {
+                if (x == 64 || y == 64)
+                    return true;
+
+                if (x == y)
+                {
+                    return true;
+                }
+
+                if (tdDim - x - 2 == y)
+                {
+                    return true;
+                }
+                return false;
+            }
+
             public void Execute(int index)
             {
                 int x = JobA.Row(index, tdDim);
                 int y = JobA.Col(index, tdDim);
 
+/*                if (HasRoad(x, y))
+                {
+                    tileData[index] = road;
+                    return;
+                }
+*/
                 // Height sample for ocean and beach tiles
                 int hx = (int)Mathf.Clamp(hDim * ((float)x / (float)tdDim), 0, hDim - 1);
                 int hy = (int)Mathf.Clamp(hDim * ((float)y / (float)tdDim), 0, hDim - 1);
