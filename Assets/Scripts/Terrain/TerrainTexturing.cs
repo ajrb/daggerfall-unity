@@ -35,14 +35,14 @@ namespace DaggerfallWorkshop
         const byte road_grass = 55;
         const byte road_dirt = 47;
 
-        const byte N  = 0b1000_0000;
-        const byte NE = 0b0100_0000;
-        const byte E  = 0b0010_0000;
-        const byte SE = 0b0001_0000;
-        const byte S  = 0b0000_1000;
-        const byte SW = 0b0000_0100;
-        const byte W  = 0b0000_0010;
-        const byte NW = 0b0000_0001;
+        public const byte N  = 0b1000_0000;
+        public const byte NE = 0b0100_0000;
+        public const byte E  = 0b0010_0000;
+        public const byte SE = 0b0001_0000;
+        public const byte S  = 0b0000_1000;
+        public const byte SW = 0b0000_0100;
+        public const byte W  = 0b0000_0010;
+        public const byte NW = 0b0000_0001;
 
 
         static readonly int tileDataDim = MapsFile.WorldMapTileDim + 1;
@@ -84,9 +84,10 @@ namespace DaggerfallWorkshop
                 tdDim = tileDataDim,
                 tDim = assignTilesDim,
                 march = march,
-                mapPixelX = mapData.mapPixelX,
-                mapPixelY = mapData.mapPixelY,
+                //mapPixelX = mapData.mapPixelX,
+                //mapPixelY = mapData.mapPixelY,
                 locationRect = mapData.locationRect,
+                roadData = RoadPathEditor.roadData[mapData.mapPixelX + (mapData.mapPixelY * MapsFile.MaxMapPixelX)],
             };
             JobHandle assignTilesHandle = assignTilesJob.Schedule(assignTilesDim * assignTilesDim, 64, tileDataHandle);
 
@@ -114,9 +115,10 @@ namespace DaggerfallWorkshop
             public int tdDim;
             public int tDim;
             public bool march;
-            public int mapPixelX;
-            public int mapPixelY;
+            //public int mapPixelX;
+            //public int mapPixelY;
             public Rect locationRect;
+            public byte roadData;
 
             public void Execute(int index)
             {
@@ -128,9 +130,9 @@ namespace DaggerfallWorkshop
                     return;
 
                 //byte roadData = (byte)(1 << (mapPixelX % 8));
-                //byte roadData = (byte) (mapPixelX & 0xF);
                 //byte roadData = NE|SE; // NE|SW; //S|W; // N|E; //0b0000_0000;
-                byte roadData = GetData();
+                //byte roadData = GetData();
+                //byte roadData = (byte)0xFF;
 
                 if (PaintRoad(x, y, index, roadData))
                     return;
@@ -156,7 +158,7 @@ namespace DaggerfallWorkshop
                     tilemapData[index] = tileData[JobA.Idx(x, y, tdDim)];
                 }
             }
-
+/*
             private byte GetData()
             {
                 switch ((mapPixelX + (mapPixelY * 1500)) % 8)
@@ -181,15 +183,16 @@ namespace DaggerfallWorkshop
                         return N;
                 }
             }
-
+*/
             private bool PaintRoad(int x, int y, int index, byte roadData)
             {
                 bool hasRoad = false;
+/* Test locator tiles:
                 if ((x == 65 && y == 65) || (x == 62 && y == 65) || (x == 65 && y == 62) || (x == 62 && y == 62))
                 {
                     tilemapData[index] = water;
                     hasRoad = true;
-                }
+                }*/
                 // N-S
                 if (((roadData & N) > 0 && (x == 63 || x == 64) && y > 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y < 64))
                 {
@@ -261,7 +264,7 @@ namespace DaggerfallWorkshop
                 else if (tile == dirt)
                     tilemapData[index] = road_dirt;
                 else if (tile == stone)
-                    tilemapData[index] = stone;
+                    tilemapData[index] = road_grass;
 
                 if (rotate)
                     tilemapData[index] += 64;
