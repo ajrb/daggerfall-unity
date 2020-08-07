@@ -168,8 +168,8 @@ namespace DaggerfallWorkshop
                         byte roads = roadData[rIdx];
                         if (roads != 0)
                         {
-                            locationDotsPixelBuffer[offset] = Color.black;
-                            Debug.LogFormat("Found road at x:{0} y:{1}  index:{2}", originX + x, originY + y, rIdx);
+                            locationDotsPixelBuffer[offset] = Color.grey;
+                            //Debug.LogFormat("Found road at x:{0} y:{1}  index:{2}", originX + x, originY + y, rIdx);
                         }
 
                         ContentReader.MapSummary summary;
@@ -264,7 +264,7 @@ namespace DaggerfallWorkshop
             {
                 try
                 {
-                    ConsoleCommandsDatabase.RegisterCommand(StartRoadPathEditor.name, StartRoadPathEditor.description, StartRoadPathEditor.usage, StartRoadPathEditor.Execute);
+                    ConsoleCommandsDatabase.RegisterCommand(RoadPathEditorCmd.name, RoadPathEditorCmd.description, RoadPathEditorCmd.usage, RoadPathEditorCmd.Execute);
                 }
                 catch (System.Exception ex)
                 {
@@ -272,7 +272,7 @@ namespace DaggerfallWorkshop
                 }
             }
 
-            private static class StartRoadPathEditor
+            private static class RoadPathEditorCmd
             {
                 public static readonly string name = "roadeditor";
                 public static readonly string description = "Opens a map window for editing road paths";

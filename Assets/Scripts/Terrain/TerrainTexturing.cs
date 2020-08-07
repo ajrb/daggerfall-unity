@@ -26,14 +26,14 @@ namespace DaggerfallWorkshop
         // Use same seed to ensure continuous tiles
         const int seed = 417028;
 
-        const byte water = 0;
-        const byte dirt = 1;
-        const byte grass = 2;
-        const byte stone = 3;
+        public const byte water = 0;
+        public const byte dirt = 1;
+        public const byte grass = 2;
+        public const byte stone = 3;
 
-        const byte road = 46;
-        const byte road_grass = 55;
-        const byte road_dirt = 47;
+        public const byte road = 46;
+        public const byte road_grass = 55;
+        public const byte road_dirt = 47;
 
         public const byte N  = 0b1000_0000;
         public const byte NE = 0b0100_0000;
@@ -193,60 +193,72 @@ namespace DaggerfallWorkshop
                     tilemapData[index] = water;
                     hasRoad = true;
                 }*/
-                // N-S
-                if (((roadData & N) > 0 && (x == 63 || x == 64) && y > 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y < 64))
+
+                if (roadData != 0)
                 {
-                    tilemapData[index] = road;
-                    hasRoad = true;
-                }
-                if (((roadData & N) > 0 && (x == 63 || x == 64) && y == 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y == 64))
-                {
-                    PaintHalfRoad(x, y, index, x == y, x == 64);
-                    hasRoad = true;
-                }
-                // E-W
-                if (((roadData & E) > 0 && (y == 63 || y == 64) && x > 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x < 64))
-                {
-                    tilemapData[index] = road;
-                    hasRoad = true;
-                }
-                if (((roadData & E) > 0 && (y == 63 || y == 64) && x == 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x == 64))
-                {
-                    PaintHalfRoad(x, y, index, x == y, x == 64);
-                    hasRoad = true;
-                }
-                // NE-SW
-                if (((roadData & NE) > 0 && x == y && x > 63) || ((roadData & SW) > 0 && x == y && x < 64))
-                {
-                    tilemapData[index] = road;
-                    hasRoad = true;
-                }
-                if (((roadData & NE) > 0 && x == y && x == 63) || ((roadData & SW) > 0 && x == y && x == 64))
-                {
-                    PaintHalfRoad(x, y, index, true, x == 64);
-                    hasRoad = true;
-                }
-                if (((roadData & NE) > 0 && ((x == y + 1 && x > 63) || (x + 1 == y && y > 63))) || ((roadData & SW) > 0 && ((x == y + 1 && x <= 64) || (x + 1 == y && y <= 64))))
-                {
-                    PaintHalfRoad(x, y, index, false, (x == y + 1));
-                    hasRoad = true;
-                }
-                // NW-SE
-                int _x = 127 - x;
-                if (((roadData & NW) > 0 && _x == y && x < 64) || ((roadData & SE) > 0 && _x == y && x > 63))
-                {
-                    tilemapData[index] = road;
-                    hasRoad = true;
-                }
-                if (((roadData & NW) > 0 && _x == y && x == 64) || ((roadData & SE) > 0 && _x == y && x == 63))
-                {
-                    PaintHalfRoad(x, y, index, false, x == 64);
-                    hasRoad = true;
-                }
-                if (((roadData & NW) > 0 && ((_x == y + 1 && x < 64) || (_x + 1 == y && y > 63))) || ((roadData & SE) > 0 && ((_x == y + 1 && x >= 63) || (_x + 1 == y && y <= 64))))
-                {
-                    PaintHalfRoad(x, y, index, true, (_x != y + 1));
-                    hasRoad = true;
+                    // Paint road around locations
+                    //if (locationRect.Contains(new Vector2(x, y)))
+                    if (x > locationRect.xMin && x < locationRect.xMax && y > locationRect.yMin && y < locationRect.yMax)
+                    {
+                        tilemapData[index] = road;
+                        return true;
+                    }
+
+                    // N-S
+                    if (((roadData & N) > 0 && (x == 63 || x == 64) && y > 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y < 64))
+                    {
+                        tilemapData[index] = road;
+                        hasRoad = true;
+                    }
+                    if (((roadData & N) > 0 && (x == 63 || x == 64) && y == 63) || ((roadData & S) > 0 && (x == 63 || x == 64) && y == 64))
+                    {
+                        PaintHalfRoad(x, y, index, x == y, x == 64);
+                        hasRoad = true;
+                    }
+                    // E-W
+                    if (((roadData & E) > 0 && (y == 63 || y == 64) && x > 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x < 64))
+                    {
+                        tilemapData[index] = road;
+                        hasRoad = true;
+                    }
+                    if (((roadData & E) > 0 && (y == 63 || y == 64) && x == 63) || ((roadData & W) > 0 && (y == 63 || y == 64) && x == 64))
+                    {
+                        PaintHalfRoad(x, y, index, x == y, x == 64);
+                        hasRoad = true;
+                    }
+                    // NE-SW
+                    if (((roadData & NE) > 0 && x == y && x > 63) || ((roadData & SW) > 0 && x == y && x < 64))
+                    {
+                        tilemapData[index] = road;
+                        hasRoad = true;
+                    }
+                    if (((roadData & NE) > 0 && x == y && x == 63) || ((roadData & SW) > 0 && x == y && x == 64))
+                    {
+                        PaintHalfRoad(x, y, index, true, x == 64);
+                        hasRoad = true;
+                    }
+                    if (((roadData & NE) > 0 && ((x == y + 1 && x > 63) || (x + 1 == y && y > 63))) || ((roadData & SW) > 0 && ((x == y + 1 && x <= 64) || (x + 1 == y && y <= 64))))
+                    {
+                        PaintHalfRoad(x, y, index, false, (x == y + 1));
+                        hasRoad = true;
+                    }
+                    // NW-SE
+                    int _x = 127 - x;
+                    if (((roadData & NW) > 0 && _x == y && x < 64) || ((roadData & SE) > 0 && _x == y && x > 63))
+                    {
+                        tilemapData[index] = road;
+                        hasRoad = true;
+                    }
+                    if (((roadData & NW) > 0 && _x == y && x == 64) || ((roadData & SE) > 0 && _x == y && x == 63))
+                    {
+                        PaintHalfRoad(x, y, index, false, x == 64);
+                        hasRoad = true;
+                    }
+                    if (((roadData & NW) > 0 && ((_x == y + 1 && x < 64) || (_x + 1 == y && y > 63))) || ((roadData & SE) > 0 && ((_x == y + 1 && x >= 63) || (_x + 1 == y && y <= 64))))
+                    {
+                        PaintHalfRoad(x, y, index, true, (_x != y + 1));
+                        hasRoad = true;
+                    }
                 }
 
                 return hasRoad;
