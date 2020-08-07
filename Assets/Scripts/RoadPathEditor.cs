@@ -27,6 +27,7 @@ namespace DaggerfallWorkshop
     public class RoadPathEditor : DaggerfallTravelMapWindow
     {
         Color32 dotOutlineColor = new Color32(0, 0, 0, 128);
+        Color32 roadColor = new Color32(60, 60, 60, 255);
 
         //public static NativeArray<byte> roadData = new NativeArray<byte>(MapsFile.MaxMapPixelX * MapsFile.MaxMapPixelY, Allocator.Persistent);
         public static byte[] roadData = new byte[MapsFile.MaxMapPixelX * MapsFile.MaxMapPixelY];
@@ -53,14 +54,47 @@ namespace DaggerfallWorkshop
                 roadData.Dispose();
         }
 */
+
+        
         public override void OnPush()
         {
             base.OnPush();
+
+            using (System.IO.StreamReader file = new System.IO.StreamReader(@"roadData.txt"))
+            {
+                for (int l = 0; l < MapsFile.MaxMapPixelY; l++)
+                {
+                    string line = file.ReadLine();
+                    try
+                    {
+                        for (int i = 0; i < MapsFile.MaxMapPixelX; i++)
+                        {
+                            int index = (l * MapsFile.MaxMapPixelX) + i;
+                            roadData[index] = Convert.ToByte(line.Substring(i*2, 2), 16);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning(line);
+                        Debug.LogWarning(e.Message);
+                    }
+                }
+            }
         }
 
         public override void OnPop()
         {
             base.OnPop();
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"roadData.txt"))
+            {
+                for (int i = 0; i < roadData.Length; i++)
+                {
+                    if (i != 0 && i % MapsFile.MaxMapPixelX == 0)
+                        file.WriteLine();
+                    file.Write(roadData[i].ToString("x2"));
+                }
+            }
         }
 
         protected override void UpdateRegionLabel()
@@ -94,20 +128,36 @@ namespace DaggerfallWorkshop
                 int w = rIdx - 1;
                 int nw = rIdx - xDim - 1;
 
-                bool rn = ConnectRoad(rIdx, n, TerrainTexturing.N, TerrainTexturing.S);
-                bool re = ConnectRoad(rIdx, e, TerrainTexturing.E, TerrainTexturing.W);
-                bool rs = ConnectRoad(rIdx, s, TerrainTexturing.S, TerrainTexturing.N);
-                bool rw = ConnectRoad(rIdx, w, TerrainTexturing.W, TerrainTexturing.E);
-
-                if (!rn && !re) ConnectRoad(rIdx, ne, TerrainTexturing.NE, TerrainTexturing.SW);
-                if (!rs && !re) ConnectRoad(rIdx, se, TerrainTexturing.SE, TerrainTexturing.NW);
-                if (!rs && !rw) ConnectRoad(rIdx, sw, TerrainTexturing.SW, TerrainTexturing.NE);
-                if (!rn && !rw) ConnectRoad(rIdx, nw, TerrainTexturing.NW, TerrainTexturing.SE);
-
                 if (roadData[rIdx] == 0)
-                    roadData[rIdx] = 0xFF;
+                {
+                    bool rn = ConnectRoad(rIdx, n, TerrainTexturing.N, TerrainTexturing.S);
+                    bool re = ConnectRoad(rIdx, e, TerrainTexturing.E, TerrainTexturing.W);
+                    bool rs = ConnectRoad(rIdx, s, TerrainTexturing.S, TerrainTexturing.N);
+                    bool rw = ConnectRoad(rIdx, w, TerrainTexturing.W, TerrainTexturing.E);
 
-                Debug.LogFormat("marked road at x:{0} y:{1}  index:{2}  byte: {3}", mouseX, mouseY, rIdx, Convert.ToString(roadData[rIdx], 2));
+                    if (!rn && !re) ConnectRoad(rIdx, ne, TerrainTexturing.NE, TerrainTexturing.SW);
+                    if (!rs && !re) ConnectRoad(rIdx, se, TerrainTexturing.SE, TerrainTexturing.NW);
+                    if (!rs && !rw) ConnectRoad(rIdx, sw, TerrainTexturing.SW, TerrainTexturing.NE);
+                    if (!rn && !rw) ConnectRoad(rIdx, nw, TerrainTexturing.NW, TerrainTexturing.SE);
+
+                    if (roadData[rIdx] == 0)
+                        roadData[rIdx] = 0xFF;
+
+                    Debug.LogFormat("Marked road at x:{0} y:{1}  index:{2}  byte: {3}", mouseX, mouseY, rIdx, Convert.ToString(roadData[rIdx], 2));
+                }
+                else
+                {
+                    roadData[rIdx] = 0;
+                    DisconnectRoad(n, TerrainTexturing.S);
+                    DisconnectRoad(e, TerrainTexturing.W);
+                    DisconnectRoad(s, TerrainTexturing.N);
+                    DisconnectRoad(w, TerrainTexturing.E);
+                    DisconnectRoad(ne, TerrainTexturing.SW);
+                    DisconnectRoad(se, TerrainTexturing.NW);
+                    DisconnectRoad(sw, TerrainTexturing.NE);
+                    DisconnectRoad(nw, TerrainTexturing.SE);
+                    Debug.LogFormat("Unmarked road at x:{0} y:{1}  index:{2}", mouseX, mouseY, rIdx);
+                }
 
                 UpdateMapLocationDotsTexture();
             }
@@ -117,25 +167,33 @@ namespace DaggerfallWorkshop
 
         private static bool ConnectRoad(int rIdx, int dIdx, byte rDir, byte dDir)
         {
-            bool road = roadData[dIdx] != 0;
-            if (road)
+            if (dIdx >= 0 && dIdx < roadData.Length)
             {
-                roadData[rIdx] |= rDir;
+                bool road = roadData[dIdx] != 0;
+                if (road)
+                {
+                    roadData[rIdx] |= rDir;
 
-                if (roadData[dIdx] == 0xFF)
-                    roadData[dIdx] = dDir;
-                else
-                    roadData[dIdx] |= dDir;
+                    if (roadData[dIdx] == 0xFF)
+                        roadData[dIdx] = dDir;
+                    else
+                        roadData[dIdx] |= dDir;
+                }
+                return road;
             }
-            return road;
+            return false;
         }
-        /*
-        string mapName = selectedRegionMapNames[mapIndex];
-        Vector2 origin = offsetLookup[mapName];
-        int originX = (int)origin.x;
-        int originY = (int)origin.y;
-        */
-        //                roadData[dIdx] = (roadData[dIdx] == 0xFF) ? dDir : (byte)(roadData[dIdx] | dDir);
+
+        private static void DisconnectRoad(int dIdx, byte dDir)
+        {
+            if (dIdx >= 0 && dIdx < roadData.Length && roadData[dIdx] != 0)
+            {
+                roadData[dIdx] &= (byte)~dDir;
+
+                if (roadData[dIdx] == 0)
+                    roadData[dIdx] = 0xFF;
+            }
+        }
 
         // Updates location dots
         protected override void UpdateMapLocationDotsTexture()
@@ -168,7 +226,7 @@ namespace DaggerfallWorkshop
                         byte roads = roadData[rIdx];
                         if (roads != 0)
                         {
-                            locationDotsPixelBuffer[offset] = Color.grey;
+                            locationDotsPixelBuffer[offset] = roadColor;
                             //Debug.LogFormat("Found road at x:{0} y:{1}  index:{2}", originX + x, originY + y, rIdx);
                         }
 
